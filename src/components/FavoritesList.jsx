@@ -1,25 +1,76 @@
-export default function FavoritesList({ favorites }) {
-  if (favorites.length === 0) return null;
+export default function FavoritesList({ favorites, onRemove }) {
+  if (!favorites || favorites.length === 0)
+    return (
+      <p className="text-center text-gray-500 dark:text-gray-400 mt-10 text-lg">
+        You haven’t added anything to your favorites yet. ❤️
+      </p>
+    );
 
   return (
     <div className="mt-10">
       <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
-        ⭐ Favorites
+        ⭐ Your Favorites
       </h2>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+
+      <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
         {favorites.map((fav) => (
           <div
             key={fav.id}
-            className="w-32 flex-shrink-0 bg-gray-100 dark:bg-gray-800 p-2 rounded-lg"
+            className="
+              relative min-w-[160px] 
+              bg-gray-900 dark:bg-gray-800 
+              rounded-xl shadow-md 
+              overflow-hidden 
+              group cursor-pointer
+            "
           >
+            {/* Movie Poster */}
             <img
-              src={`https://image.tmdb.org/t/p/w200${fav.poster_path}`}
+              src={`https://image.tmdb.org/t/p/w300${fav.poster_path}`}
               alt={fav.title}
-              className="rounded-lg"
+              className="
+                w-full h-48 object-cover 
+                group-hover:scale-110 
+                transition-transform duration-300
+              "
             />
-            <p className="text-sm mt-1 text-center text-gray-900 dark:text-gray-300">
+
+            {/* Dark Overlay */}
+            <div
+              className="
+                absolute inset-0 
+                bg-black/40 opacity-0 
+                group-hover:opacity-100 
+                transition-opacity duration-300
+              "
+            ></div>
+
+            {/* Title on Hover */}
+            <p
+              className="
+                absolute bottom-2 left-1/2 -translate-x-1/2 
+                text-white text-sm font-medium 
+                opacity-0 group-hover:opacity-100 
+                transition-all duration-300
+                text-center px-2
+              "
+            >
               {fav.title}
             </p>
+
+            {/* Remove Button */}
+            <button
+              onClick={() => onRemove(fav.id)}
+              className="
+                absolute top-2 right-2 
+                bg-red-500 hover:bg-red-600 
+                text-white text-xs px-2 py-1 rounded 
+                opacity-80 hover:opacity-100 
+                transition
+              "
+            >
+              Remove
+            </button>
           </div>
         ))}
       </div>

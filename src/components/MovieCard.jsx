@@ -1,9 +1,15 @@
 export default function MovieCard({ movie, onClick }) {
   return (
     <div
-      className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-lg cursor-pointer hover:scale-105 transition-transform"
+      className="
+        relative cursor-pointer group 
+        rounded-xl overflow-hidden shadow-md
+        hover:shadow-xl transition-all duration-300
+        bg-gray-900
+      "
       onClick={() => onClick(movie)}
     >
+      {/* Movie Poster */}
       <img
         src={
           movie.poster_path
@@ -11,15 +17,48 @@ export default function MovieCard({ movie, onClick }) {
             : "https://via.placeholder.com/500x750?text=No+Image"
         }
         alt={movie.title}
-        className="w-full h-80 object-cover"
+        className="
+          w-full h-80 object-cover 
+          group-hover:scale-110 
+          transition-transform duration-500 ease-in-out
+        "
       />
-      <div className="p-3">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-          {movie.title}
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
-          ⭐ {movie.vote_average ? movie.vote_average.toFixed(1) : "N/A"}
-        </p>
+
+      {/* Gradient Overlay */}
+      <div
+        className="
+          absolute inset-0 
+          bg-gradient-to-t from-black/80 via-black/20 to-transparent
+          opacity-80 group-hover:opacity-100 
+          transition-opacity duration-300
+        "
+      ></div>
+
+      {/* Rating Badge */}
+      <div
+        className="
+          absolute top-3 right-3 
+          bg-yellow-500 text-black font-bold 
+          text-sm px-2 py-1 rounded-lg
+          shadow-md
+        "
+      >
+        ⭐ {movie.vote_average?.toFixed(1) || "N/A"}
+      </div>
+
+      {/* Title Overlay */}
+      <div
+        className="
+          absolute bottom-0 left-0 w-full 
+          p-3
+          text-white font-semibold 
+          text-center text-lg
+          opacity-0 group-hover:opacity-100
+          translate-y-3 group-hover:translate-y-0
+          transition-all duration-300
+        "
+      >
+        {movie.title}
       </div>
     </div>
   );

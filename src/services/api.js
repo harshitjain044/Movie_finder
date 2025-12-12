@@ -14,3 +14,21 @@ export async function searchMovies(query) {
   const data = await res.json();
   return data.results || [];
 }
+
+// Fetch all genres
+export async function fetchGenres() {
+  const res = await fetch(
+    `${BASE_URL}/genre/movie/list?api_key=${API_KEY}&language=en-US`
+  );
+  const data = await res.json();
+  return data.genres || [];
+}
+
+// Fetch movies by genre id
+export async function fetchMoviesByGenre(genreId) {
+  const res = await fetch(
+    `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=${genreId}`
+  );
+  const data = await res.json();
+  return data.results || [];
+}

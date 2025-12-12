@@ -5,6 +5,9 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Favorites from "./pages/Favorites";
 import { ThemeContext } from "./context/ThemeContext";
+import Trending from "./pages/Trending";
+import Categories from "./pages/Categories";
+
 
 export default function App() {
   const [query, setQuery] = useState("");
@@ -35,7 +38,10 @@ export default function App() {
                 />
               }
             />
-            <Route path="/favorites" element={<Favorites />} />
+             <Route path="/favorites" element={<Favorites />} />
+              <Route path="/trending" element={<Trending />} />
+              <Route path="/categories" element={<Categories />} />
+
           </Routes>
         </main>
 
