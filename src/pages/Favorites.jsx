@@ -4,7 +4,7 @@ import { FavoritesContext } from "../context/FavoritesContext";
 import MovieModal from "../components/MovieModal";
 
 export default function FavoritesList({ favorites, onRemove, onMovieClick }) {
-  if (!favorites.length)
+  if (!Array.isArray(favorites) || favorites.length === 0)
     return (
       <p className="text-center text-gray-500 dark:text-gray-400 mt-10 text-lg">
         No favorites added yet ❤️
