@@ -1,98 +1,166 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import DiscoveryFilters from "../components/DiscoveryFilters";
 import MovieCard from "../components/MovieCard";
 import MovieModal from "../components/MovieModal";
-import { fetchTrendingMovies, searchMovies } from "../services/api";
+import PageSearchHeader from "../components/PageSearchHeader";
+import SkeletonCard from "../components/SkeletonCard";
+import useMovieWatchProviders from "../hooks/useMovieWatchProviders";
+import { fetchGenres, fetchTrendingMovies, searchMovies } from "../services/api";
+import {
+  createDefaultFilters,
+  filterAndSortMovies,
+  getMovieFilterOptions,
+} from "../utils/movieFilters";
 
 export default function Home({ query, setQuery, setHandleSearch }) {
   const [movies, setMovies] = useState([]);
+  const [genres, setGenres] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState("");
+  const [filters, setFilters] = useState(createDefaultFilters);
+  const { providerMap, availableProviders } = useMovieWatchProviders(movies);
 
-  // Load trending movies
-  const loadTrending = () => {
+  const loadTrending = useCallback(async () => {
     setLoading(true);
+    setError("");
     setIsSearching(false);
-    fetchTrendingMovies().then((data) => {
+
+    try {
+      const data = await fetchTrendingMovies();
       setMovies(data);
+    } catch (err) {
+      setMovies([]);
+      setError(err.message || "Unable to load trending movies.");
+    } finally {
       setLoading(false);
-    });
-  };
+    }
+  }, []);
 
   useEffect(() => {
     loadTrending();
+  }, [loadTrending]);
+
+  useEffect(() => {
+    const loadGenres = async () => {
+      try {
+        const data = await fetchGenres();
+        setGenres(data);
+      } catch {
+        setGenres([]);
+      }
+    };
+
+    loadGenres();
   }, []);
 
-  // Handle search
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  const handleSearch = useCallback(async (event, nextQuery = query) => {
+    event?.preventDefault?.();
+
+    const searchTerm = nextQuery.trim();
+
+    if (!searchTerm) {
+      loadTrending();
+      return;
+    }
 
     setLoading(true);
+    setError("");
     setIsSearching(true);
 
-    const results = await searchMovies(query);
-    setMovies(results);
-    setLoading(false);
-  };
+    try {
+      const results = await searchMovies(searchTerm);
+      setMovies(results);
+    } catch (err) {
+      setMovies([]);
+      setError(err.message || "Unable to search movies right now.");
+    } finally {
+      setLoading(false);
+    }
+  }, [loadTrending, query]);
 
-  // Expose handleSearch to Navbar
   useEffect(() => {
     setHandleSearch(() => handleSearch);
-  }, [query]);
+  }, [handleSearch, setHandleSearch]);
+
+  const filterOptions = useMemo(
+    () => getMovieFilterOptions(movies, genres, availableProviders),
+    [availableProviders, genres, movies],
+  );
+
+  const visibleMovies = useMemo(
+    () => filterAndSortMovies(movies, filters, providerMap),
+    [filters, movies, providerMap],
+  );
 
   return (
-    <div className="p-6">
+    <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <PageSearchHeader
+        title={isSearching ? `Results for "${query.trim()}"` : "Trending Movies This Week"}
+        description="Search from any page and open any title for rich details, cast, reviews, and similar movies."
+        query={query}
+        setQuery={setQuery}
+        handleSearch={handleSearch}
+        rightContent={
+          <>
+            <span className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold">
+              {loading ? "Loading..." : `${visibleMovies.length} matches`}
+            </span>
+            {isSearching && (
+              <button
+                onClick={() => {
+                  setQuery("");
+                  loadTrending();
+                }}
+                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
+              >
+                Back to Trending
+              </button>
+            )}
+          </>
+        }
+      />
 
-      {/* 🔙 BACK BUTTON WHEN SEARCHING */}
-      {isSearching && (
-        <button
-          onClick={() => {
-            setQuery("");   // clear search box
-            loadTrending(); // load trending again
-          }}
-          className="
-  mb-4 px-5 py-2 
-  rounded-xl font-medium
-  bg-gradient-to-r from-gray-800 to-gray-600 
-  dark:from-gray-700 dark:to-gray-500
-  text-white 
-  shadow-md 
-  hover:shadow-lg 
-  hover:scale-[1.03]
-  transition-all duration-300
-"
+      <DiscoveryFilters
+        filters={filters}
+        setFilters={setFilters}
+        options={filterOptions}
+      />
 
-        >
-          ⬅ Back to Trending
-        </button>
+      {error && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+          {error}
+        </div>
       )}
 
-      {/* Movies Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-8 gap-6">
+      {!loading && !error && visibleMovies.length === 0 && (
+        <div className="mb-6 rounded-3xl border border-dashed border-gray-300 bg-white/70 px-6 py-14 text-center shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
+          <p className="text-2xl font-semibold text-gray-900 dark:text-white">No movies found</p>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            Try another filter combination, shorter keyword, or head back to trending movies.
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {loading
-          ? Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="skeleton rounded-xl h-80 w-full" />
-          ))
-          : movies.length > 0
-            ? movies.map((movie) => (
+          ? Array.from({ length: 10 }).map((_, index) => <SkeletonCard key={index} />)
+          : visibleMovies.map((movie) => (
               <MovieCard
                 key={movie.id}
                 movie={movie}
-                onClick={setSelectedMovie}
+                onQuickView={setSelectedMovie}
+                watchInfo={providerMap[movie.id]}
               />
-            ))
-            : (
-              <p className="text-center col-span-full">No movies found</p>
-            )}
+            ))}
       </div>
 
-      {/* Modal */}
       <MovieModal
         movie={selectedMovie}
-        isOpen={!!selectedMovie}
+        isOpen={Boolean(selectedMovie)}
         onClose={() => setSelectedMovie(null)}
       />
-    </div>
+    </section>
   );
 }

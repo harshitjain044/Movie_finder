@@ -1,112 +1,160 @@
-import { useEffect, useState } from "react";
-import { fetchGenres, fetchMoviesByGenre } from "../services/api";
+import { useEffect, useMemo, useState } from "react";
+import DiscoveryFilters from "../components/DiscoveryFilters";
 import MovieCard from "../components/MovieCard";
-import SkeletonCard from "../components/SkeletonCard";
 import MovieModal from "../components/MovieModal";
+import PageSearchHeader from "../components/PageSearchHeader";
+import SkeletonCard from "../components/SkeletonCard";
+import useMovieWatchProviders from "../hooks/useMovieWatchProviders";
+import { fetchGenres, fetchMoviesByGenre } from "../services/api";
+import {
+  createDefaultFilters,
+  filterAndSortMovies,
+  getMovieFilterOptions,
+} from "../utils/movieFilters";
 
-export default function Categories() {
+export default function Categories({ query, setQuery, handleSearch }) {
   const [genres, setGenres] = useState([]);
-  const [selectedGenre, setSelectedGenre] = useState('28'); // Default to Action genre
+  const [selectedGenre, setSelectedGenre] = useState(28);
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [selectedMovie, setSelectedMovie] = useState(null);
-
+  const [filters, setFilters] = useState(createDefaultFilters);
+  const { providerMap, availableProviders } = useMovieWatchProviders(movies);
 
   useEffect(() => {
-    fetchGenres().then(setGenres);
+    const loadGenres = async () => {
+      try {
+        const data = await fetchGenres();
+        setGenres(data);
+      } catch (err) {
+        setGenres([]);
+        setError(err.message || "Unable to load movie categories.");
+      }
+    };
+
+    loadGenres();
   }, []);
 
   useEffect(() => {
-    if (!selectedGenre) return;
+    if (!selectedGenre) {
+      return;
+    }
 
-    setLoading(true);
-    fetchMoviesByGenre(selectedGenre).then((data) => {
-      setMovies(data);
-      setLoading(false);
-    });
+    const loadMovies = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const data = await fetchMoviesByGenre(selectedGenre);
+        setMovies(data);
+      } catch (err) {
+        setMovies([]);
+        setError(err.message || "Unable to load this category.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMovies();
   }, [selectedGenre]);
 
-  return (
-    <div className="p-6">
-      
-      {/* Hero Banner */}
-      <div className="
-        w-full bg-gradient-to-r 
-        from-blue-600 via-blue-500 to-blue-400
-        dark:from-blue-900 dark:via-blue-800 dark:to-blue-700
-        text-white rounded-2xl shadow-lg p-8 mb-10
-      ">
-        <h1 className="text-4xl font-extrabold mb-2">🎬 Explore by Categories</h1>
-        <p className="text-lg opacity-90">
-          Discover movies from different genres. Pick your favorite theme and explore!
-        </p>
-      </div>
+  const selectedGenreName = useMemo(
+    () => genres.find((genre) => genre.id === selectedGenre)?.name ?? "Selected",
+    [genres, selectedGenre],
+  );
 
-      {/* Genre Chips */}
-      <div className="flex gap-4 flex-wrap mb-10">
+  const filterOptions = useMemo(
+    () => getMovieFilterOptions(movies, genres, availableProviders),
+    [availableProviders, genres, movies],
+  );
+
+  const visibleMovies = useMemo(
+    () => filterAndSortMovies(movies, filters, providerMap),
+    [filters, movies, providerMap],
+  );
+
+  return (
+    <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <PageSearchHeader
+        title="Browse by Category"
+        description="Search across the site or switch genres to discover more titles."
+        query={query}
+        setQuery={setQuery}
+        handleSearch={handleSearch}
+      />
+
+      <div className="mb-8 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {genres.map((genre) => (
           <button
             key={genre.id}
             onClick={() => setSelectedGenre(genre.id)}
-            className={`
-              px-5 py-2 rounded-full font-medium transition-all
-              border flex items-center gap-2 shadow-sm 
-              hover:scale-105 hover:shadow-md
-              ${
-                selectedGenre === genre.id
-                  ? "bg-blue-600 text-white border-blue-700 shadow-md"
-                  : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600"
-              }
-            `}
+            className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              selectedGenre === genre.id
+                ? "border-blue-700 bg-blue-600 text-white shadow-md"
+                : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:text-blue-300"
+            }`}
           >
-            🎬 {genre.name}
+            {genre.name}
           </button>
         ))}
-        { console.log(selectedGenre)}
-        {}
       </div>
 
-      {/* Category Title */}
-      {selectedGenre && (
-        <h3 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-200">
-          🎭 {genres.find((g) => g.id === selectedGenre)?.name} Movies
-        </h3>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
+            {selectedGenreName} Movies
+          </h2>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Curated results from TMDB for the selected genre.
+          </p>
+        </div>
+        <span className="w-fit rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+          {loading ? "Loading..." : `${visibleMovies.length} matches`}
+        </span>
+      </div>
+
+      <DiscoveryFilters
+        filters={filters}
+        setFilters={setFilters}
+        options={filterOptions}
+      />
+
+      {error && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+          {error}
+        </div>
       )}
 
-      {/* Movies Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-6">
-  {loading
-    ? Array.from({ length: 14 }).map((_, i) => <SkeletonCard key={i} />)
-    : movies.map((movie, index) => (
-        <div
-          key={movie.id}
-          className="animate-scaleUp"
-          style={{ animationDelay: `${index * 0.05}s` }}
-        >
-          <MovieCard 
-            movie={movie} 
-            onClick={setSelectedMovie}   // ⭐ IMPORTANT
-          />
-        </div>
-      ))}
-</div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {loading
+          ? Array.from({ length: 10 }).map((_, index) => <SkeletonCard key={index} />)
+          : visibleMovies.map((movie) => (
+              <MovieCard
+                key={movie.id}
+                movie={movie}
+                onQuickView={setSelectedMovie}
+                watchInfo={providerMap[movie.id]}
+              />
+            ))}
+      </div>
 
-
-      {/* Empty State */}
-      {!loading && selectedGenre && movies.length === 0 && (
-        <div className="text-center mt-10 flex flex-col items-center animate-fadeIn">
-          <span className="text-6xl mb-3">😕</span>
-          <p className="text-lg text-gray-500 dark:text-gray-400">
-            No movies found in this category.
+      {!loading && !error && visibleMovies.length === 0 && (
+        <div className="mt-8 rounded-3xl border border-dashed border-gray-300 bg-white/70 px-6 py-14 text-center shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
+          <p className="text-xl font-semibold text-gray-900 dark:text-white">
+            No movies found in this category
+          </p>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            Try switching the category or discovery filters to uncover more titles.
           </p>
         </div>
       )}
-      <MovieModal
-  movie={selectedMovie}
-  isOpen={!!selectedMovie}
-  onClose={() => setSelectedMovie(null)}
-/>
 
-    </div>
+      <MovieModal
+        movie={selectedMovie}
+        isOpen={Boolean(selectedMovie)}
+        onClose={() => setSelectedMovie(null)}
+      />
+    </section>
   );
 }

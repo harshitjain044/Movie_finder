@@ -1,43 +1,76 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleUp {
-  from { transform: scale(0.85); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.25s ease-out;
 }
 
 .animate-scaleUp {
   animation: scaleUp 0.3s ease-out;
 }
 
-
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    90deg,
-    #3a3a3a 0%,
-    #4b4b4b 50%,
-    #3a3a3a 100%
-  );
+  background: linear-gradient(90deg, #dbe4f0 0%, #edf3fb 50%, #dbe4f0 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite linear;
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+.dark .skeleton {
+  background: linear-gradient(90deg, #1f2937 0%, #334155 50%, #1f2937 100%);
+  background-size: 200% 100%;
 }
 
-/* Hide horizontal scrollbar but still scroll */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
